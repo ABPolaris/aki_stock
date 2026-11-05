@@ -1,0 +1,145 @@
+{
+  "actions": [],
+  "config": {
+    "description": "面板配置与 ``plugins_data/aki_stock/config.toml`` 共用这一份模型。",
+    "properties": {
+      "source": {
+        "default": "xueqiu",
+        "description": "雪球源自动获取访问令牌；东方财富源在部分网络可能被限流。",
+        "enum": [
+          "eastmoney",
+          "xueqiu"
+        ],
+        "option_labels": {
+          "eastmoney": "东方财富（东财）",
+          "xueqiu": "雪球"
+        },
+        "title": "行情数据源",
+        "type": "string"
+      },
+      "watchlist_limit": {
+        "default": 5,
+        "description": "每位用户最多可保存的自选股数量，默认 5 只，范围 1-50。",
+        "maximum": 50,
+        "minimum": 1,
+        "single_line": true,
+        "title": "自选股数量上限",
+        "type": "integer"
+      }
+    },
+    "title": "Config",
+    "type": "object"
+  },
+  "guides": [
+    {
+      "completion_action": null,
+      "demo": {
+        "config": {
+          "source": "xueqiu",
+          "watchlist_limit": 8
+        }
+      },
+      "id": "first-use",
+      "steps": [
+        {
+          "chapter": "选择数据源",
+          "example": {
+            "source": "xueqiu",
+            "watchlist_limit": 5
+          },
+          "form": "start",
+          "target": "config.source",
+          "text": "在插件管理选择 aki_stock，打开配置表单。默认使用雪球源；这里从公开默认值开始演示，真实配置未被修改。"
+        },
+        {
+          "chapter": "切换数据源",
+          "example": {
+            "source": "eastmoney",
+            "watchlist_limit": 5
+          },
+          "form": "edit",
+          "target": "config.source",
+          "text": "东方财富源在部分网络会被限流，雪球源会自动获取访问令牌。按网络情况选择即可，保存后下一条命令生效。"
+        },
+        {
+          "chapter": "设置自选股上限",
+          "example": {
+            "source": "eastmoney",
+            "watchlist_limit": 8
+          },
+          "form": "edit",
+          "target": "config.watchlist_limit",
+          "text": "填写每位用户最多保存的自选股数量，默认 5 只，范围 1-50。聊天里一次只增删一只，避免刷屏和频繁请求。"
+        },
+        {
+          "chapter": "核对配置",
+          "example": {
+            "source": "eastmoney",
+            "watchlist_limit": 8
+          },
+          "form": "validate",
+          "target": "config",
+          "text": "核对数据源与上限。这里演示本地检查；真实保存仍由服务端校验，错误时请按字段提示修正。"
+        },
+        {
+          "chapter": "保存配置",
+          "example": {
+            "source": "eastmoney",
+            "watchlist_limit": 8
+          },
+          "form": "save",
+          "target": "config",
+          "text": "使用底部保存。这里仅演示保存位置，不会发送真实保存请求；真实配置写入 plugins_data/aki_stock/config.toml。"
+        },
+        {
+          "chapter": "查看生效结果",
+          "example": {
+            "source": "eastmoney",
+            "watchlist_limit": 8
+          },
+          "form": "saved",
+          "target": "config",
+          "text": "返回配置后查看全局通知。数据源与上限支持保存后立即生效，不需要重载整个插件。"
+        },
+        {
+          "chapter": "查询一只股票",
+          "command": {
+            "context": "私聊，或群聊中 @机器人",
+            "reply": "002456 欧菲光\n最新价：5.78 元\n涨跌幅：+1.76%\n数据源：雪球",
+            "text": "/行情 002456"
+          },
+          "target": "config",
+          "text": "在私聊发送 /行情 002456 查代码，或发送 /行情 TCL科技 查名称。演示不会代发消息。"
+        },
+        {
+          "chapter": "添加自选股",
+          "command": {
+            "context": "私聊，或群聊中 @机器人",
+            "reply": "已添加自选股：002456 欧菲光（1/5）",
+            "text": "/自选股 添加 002456"
+          },
+          "target": "config",
+          "text": "发送 /自选股 添加 002456；删除用 /自选股 删除 002456，查看列表用 /自选股 列表。"
+        },
+        {
+          "chapter": "查询自选股与大盘",
+          "command": {
+            "context": "私聊，或群聊中 @机器人",
+            "reply": "A股概况\n1. 上证综指（000001）：3689.91  +0.10%\n2. 深证成指（399001）：11471.09  +1.19%\n3. 北证50（899050）：910.07  +1.79%\n数据源：雪球",
+            "text": "/A股概况"
+          },
+          "target": "config",
+          "text": "/自选股信息 会依次查询列表中的股票，每次之间间隔 1 秒；/A股概况 查询上证综指、深证成指和北证 50。"
+        }
+      ],
+      "title": "配置行情源并查询 A 股"
+    }
+  ],
+  "plugin": {
+    "description": "A股行情查询、自选股管理与大盘概况（AKShare）",
+    "name": "aki_stock",
+    "version": "0.1.0"
+  },
+  "resources": [],
+  "schema_version": 1
+}

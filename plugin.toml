@@ -1,0 +1,18 @@
+name = "aki_stock"
+version = "0.1.0"
+description = "A股行情查询、自选股管理与大盘概况（AKShare）"
+python_dependencies = ["akshare>=1.20.34,<2", "pydantic>=2,<3"]
+hot_reload = true
+config_hot_reload = true
+tags = ["stock", "finance", "akshare"]
+
+# 运行配置在 plugins_data/aki_stock/config.toml，本表只提供打包默认值。
+[config]
+# 行情数据源：eastmoney = 东方财富，xueqiu = 雪球
+source = "xueqiu"
+# 每位用户最多保存的自选股数量（1-50）
+watchlist_limit = 5
+
+[sdk]
+version = 1
+contract = "plugin.contract.json"
