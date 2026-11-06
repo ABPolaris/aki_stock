@@ -1,10 +1,17 @@
 name = "aki_stock"
-version = "0.1.0"
+version = "0.1.1"
 description = "A股行情查询、自选股管理与大盘概况（AKShare）"
+author = "秋星灿"
 python_dependencies = ["akshare>=1.20.34,<2", "pydantic>=2,<3"]
+
+# 以下为可选元数据（更新检查与面板展示用）
+repo = "https://github.com/ABPolaris/aki_stock"
+branch = "main"
+license = "MIT"
 hot_reload = true
 config_hot_reload = true
 tags = ["stock", "finance", "akshare"]
+
 
 # 运行配置在 plugins_data/aki_stock/config.toml，本表只提供打包默认值。
 [config]

@@ -11,7 +11,7 @@
           "xueqiu"
         ],
         "option_labels": {
-          "eastmoney": "东方财富（东财）",
+          "eastmoney": "东方财富",
           "xueqiu": "雪球"
         },
         "title": "行情数据源",
@@ -138,7 +138,7 @@
   "plugin": {
     "description": "A股行情查询、自选股管理与大盘概况（AKShare）",
     "name": "aki_stock",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "resources": [],
   "schema_version": 1

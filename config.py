@@ -16,7 +16,7 @@ class Config(BaseModel):
         description="雪球源自动获取访问令牌；东方财富源在部分网络可能被限流。",
         json_schema_extra={
             "option_labels": {
-                "eastmoney": "东方财富（东财）",
+                "eastmoney": "东方财富",
                 "xueqiu": "雪球",
             }
         },
