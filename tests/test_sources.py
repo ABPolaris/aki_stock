@@ -53,29 +53,32 @@ def item_frame(**values) -> Frame:
 
 
 def test_parse_eastmoney_item_quote():
-    quote = _parse_em_item(item_frame(最新=5.78, 涨幅=1.76), OFILM)
+    quote = _parse_em_item(item_frame(最新=5.78, 涨幅=1.76, 涨跌=0.10), OFILM)
     assert quote.price == 5.78
     assert quote.change_percent == 1.76
+    assert quote.change_amount == 0.10
     assert quote.source == "eastmoney"
 
 
 def test_parse_eastmoney_index_row():
     quote = _parse_em_index_row(
-        {"代码": "000001", "名称": "上证指数", "最新价": 3689.91, "涨跌幅": 0.1},
+        {"代码": "000001", "名称": "上证指数", "最新价": 3689.91, "涨跌幅": 0.1, "涨跌额": 3.74},
         SH_INDEX,
     )
     assert quote.price == 3689.91
     assert quote.change_percent == 0.1
+    assert quote.change_amount == 3.74
     assert quote.ref.name == "上证综指"
 
 
 def test_parse_xueqiu_item_quote():
     quote = _parse_xq_item(
-        item_frame(名称="欧菲光", 代码="SZ002456", 现价=5.78, 涨幅=1.76),
+        item_frame(名称="欧菲光", 代码="SZ002456", 现价=5.78, 涨幅=1.76, 涨跌=0.10),
         OFILM,
     )
     assert quote.price == 5.78
     assert quote.change_percent == 1.76
+    assert quote.change_amount == 0.10
     assert quote.source == "xueqiu"
 
 

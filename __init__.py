@@ -29,7 +29,7 @@ from .sources import SOURCE_LABELS
 
 plugin = Plugin(
     "aki_stock",
-    version="0.1.1",
+    version="0.1.1a1",
     description="A股行情查询、自选股管理与大盘概况（AKShare）",
     config=Config,
     hot_reload=True,
@@ -315,9 +315,11 @@ def _format_single(result: Quote) -> str:
         price_line = f"最新：{price}" + (" 点" if result.price is not None else "")
     else:
         price_line = f"最新价：{price}" + (" 元" if result.price is not None else "")
+    unit = "点" if ref.kind == "index" else "元"
     lines = [
         head,
         price_line,
+        f"涨跌额：{_amount(result.change_amount, unit)}",
         f"涨跌幅：{_pct(result.change_percent)}",
         f"数据源：{_source_label(result)}",
     ]
@@ -327,7 +329,8 @@ def _format_single(result: Quote) -> str:
 
 
 def _format_many(title: str, outcomes: list[QuoteOutcome]) -> str:
-    lines = [title]
+    # 一行里三个数字，标题先说明顺序，避免把涨跌额误读成价格。
+    lines = [f"{title} · 价格 / 涨跌额 / 涨跌幅"]
     for index, outcome in enumerate(outcomes, 1):
         name = _ref_name(outcome.ref)
         if outcome.quote is None:
@@ -335,7 +338,8 @@ def _format_many(title: str, outcomes: list[QuoteOutcome]) -> str:
             continue
         result = outcome.quote
         lines.append(
-            f"{index}. {name}：{_price(result.price)}  {_pct(result.change_percent)}"
+            f"{index}. {name}：{_price(result.price)}  "
+            f"{_amount_value(result.change_amount)}  {_pct(result.change_percent)}"
         )
     source = next((item.quote.source for item in outcomes if item.quote is not None), "")
     if source:
@@ -353,6 +357,17 @@ def _source_label(result: Quote) -> str:
 
 def _price(value: float | None) -> str:
     return "—" if value is None else f"{value:.2f}"
+
+
+def _amount_value(value: float | None) -> str:
+    if value is None:
+        return "—"
+    return f"{value:+.2f}" if value > 0 else f"{value:.2f}"
+
+
+def _amount(value: float | None, unit: str) -> str:
+    text = _amount_value(value)
+    return text if text == "—" else f"{text} {unit}"
 
 
 def _pct(value: float | None) -> str:
@@ -433,7 +448,7 @@ plugin.guide(
             "command": {
                 "text": "/行情 002456",
                 "context": "私聊，或群聊中 @机器人",
-                "reply": "002456 欧菲光\n最新价：5.78 元\n涨跌幅：+1.76%\n数据源：雪球",
+                "reply": "002456 欧菲光\n最新价：5.78 元\n涨跌额：+0.10 元\n涨跌幅：+1.76%\n数据源：雪球",
             },
         },
         {
@@ -453,7 +468,7 @@ plugin.guide(
             "command": {
                 "text": "/A股概况",
                 "context": "私聊，或群聊中 @机器人",
-                "reply": "A股概况\n1. 上证综指（000001）：3689.91  +0.10%\n2. 深证成指（399001）：11471.09  +1.19%\n3. 北证50（899050）：910.07  +1.79%\n数据源：雪球",
+                "reply": "A股概况 · 价格 / 涨跌额 / 涨跌幅\n1. 上证综指（000001）：3689.91  +3.74  +0.10%\n2. 深证成指（399001）：11471.09  +135.41  +1.19%\n3. 北证50（899050）：910.07  +15.99  +1.79%\n数据源：雪球",
             },
         },
     ],
