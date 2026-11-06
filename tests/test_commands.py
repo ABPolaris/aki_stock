@@ -235,15 +235,15 @@ async def test_watchlist_quotes_order_interval_and_partial_failure(tmp_path):
     await _handle_watchlist(runtime, Ctx(["添加", "600519"]))
 
     text = await _handle_watchlist_quotes(runtime, Ctx([]))
-    assert "自选股行情（2/5）" in text
-    assert "1. 002456 欧菲光：5.78  +0.10  +1.76%" in text
-    assert "2. 600519 贵州茅台：1452.00  +5.56  +0.38%" in text
+    assert "自选股行情（2/5） · 价格 | 涨跌额 | 涨跌幅" in text
+    assert "1. 002456 欧菲光\n5.78 | +0.10 | +1.76%" in text
+    assert "2. 600519 贵州茅台\n1452.00 | +5.56 | +0.38%" in text
     assert quotes.calls == ["002456", "600519"]
     assert sleep.calls == [1.0]
 
     quotes.fail_codes.add("600519")
     text = await _handle_watchlist_quotes(runtime, Ctx([]))
-    assert "1. 002456 欧菲光：5.78" in text
+    assert "1. 002456 欧菲光\n5.78 |" in text
     assert "2. 600519 贵州茅台：查询失败（数据源鉴权失败）" in text
 
     assert "自选股列表为空" in await _handle_watchlist_quotes(
@@ -258,10 +258,10 @@ async def test_watchlist_quotes_order_interval_and_partial_failure(tmp_path):
 async def test_overview_order_and_interval(tmp_path):
     runtime, _, quotes, sleep = build_runtime(tmp_path)
     text = await _handle_overview(runtime, Ctx([]))
-    assert "A股概况" in text
-    assert "1. 上证综指（000001）：10.00  -0.05  -0.50%" in text
-    assert "2. 深证成指（399001）：11471.09  +135.40  +1.19%" in text
-    assert "3. 北证50（899050）：910.07  +15.99  +1.79%" in text
+    assert "A股概况 · 价格 | 涨跌额 | 涨跌幅" in text
+    assert "1. 上证综指（000001）\n10.00 | -0.05 | -0.50%" in text
+    assert "2. 深证成指（399001）\n11471.09 | +135.40 | +1.19%" in text
+    assert "3. 北证50（899050）\n910.07 | +15.99 | +1.79%" in text
     assert quotes.calls == ["000001", "399001", "899050"]
     assert sleep.calls == [1.0, 1.0]
     assert "不接受参数" in await _handle_overview(runtime, Ctx(["002456"]))

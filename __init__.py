@@ -29,7 +29,7 @@ from .sources import SOURCE_LABELS
 
 plugin = Plugin(
     "aki_stock",
-    version="0.1.3",
+    version="v0.1.4-a1",
     description="A股行情查询、自选股管理与大盘概况（AKShare）",
     config=Config,
     hot_reload=True,

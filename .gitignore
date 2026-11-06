@@ -1,0 +1,4 @@
+# qegg runtime state
+/.quailegg/state/
+/.quailegg/lock
+/.quailegg/assets/

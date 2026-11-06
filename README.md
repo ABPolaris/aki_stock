@@ -87,6 +87,32 @@ uv run --project ../NeoBot --no-sync python ../NeoBot/scripts/plugin_ci.py . --o
 
 真实数据源联调不属于离线验收：雪球源已在开发机实测个股与三个指数；东方财富源在本机验证时被 IP 限流，只完成了返回结构解析与异常翻译测试。真实 QQ 群聊 @、面板表单下发和部署网络仍需在实际环境核对。
 
+## QuailEgg 发版
+
+`pyproject.toml` 的 `[project]` 是 QuailEgg 识别的 Python 清单：
+
+```sh
+qegg scan   # 应显示 python@aki-stock，版本 0.1.x
+qegg init
+```
+
+`pyproject.toml` 的 `version` 必须与 `plugin.toml` 的 `version` 一致；QuailEgg 发版时只改写 `pyproject.toml`，发布后请同步 `plugin.toml`。
+
+本插件通过 GitHub Release / 插件目录分发，不是 PyPI 包。`qegg init` 生成的默认配置会尝试 PyPI 发布，建议改成：
+
+```toml
+[publish]
+registries = []
+
+[packages."python@aki-stock"]
+name = "aki-stock"
+path = "."
+resolver = "python"
+publish = false
+```
+
+`qegg init` 默认把 `[verify].commands` 写成 `uv run pytest -q`；本仓库测试需要 NeoBot 的 `neobot_modloader`，纯插件仓库里无法直接运行，请替换成 CI 里能准备 NeoBot 源码的校验命令，或用 `qegg init --no-verify-cmd` 先关闭。
+
 ## 代码结构
 
 | 文件 | 职责 |
