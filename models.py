@@ -42,6 +42,7 @@ class Quote:
     change_percent: float | None
     source: str = ""
     as_of: str | None = None
+    change_amount: float | None = None
 
 
 @dataclass(frozen=True, slots=True)

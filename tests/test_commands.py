@@ -87,7 +87,21 @@ class FakeQuotes:
                 "雪球源访问令牌失效，请稍后再试或切换到东方财富源。"
             )
         price, change = PRICES.get(ref.code, (10.0, 0.0))
-        return Quote(ref=ref, price=price, change_percent=change, source="xueqiu")
+        amounts = {
+            "000100": -0.05,
+            "002456": 0.10,
+            "000001": -0.05,
+            "600519": 5.56,
+            "399001": 135.40,
+            "899050": 15.99,
+        }
+        return Quote(
+            ref=ref,
+            price=price,
+            change_percent=change,
+            source="xueqiu",
+            change_amount=amounts.get(ref.code),
+        )
 
     def set_source(self, source: str) -> None:
         self.source_name = source
@@ -129,6 +143,7 @@ async def test_quote_success_format(tmp_path):
     text = await _handle_quote(runtime, Ctx(["002456"]))
     assert "002456 欧菲光" in text
     assert "最新价：5.78 元" in text
+    assert "涨跌额：+0.10 元" in text
     assert "涨跌幅：+1.76%" in text
     assert "数据源：雪球" in text
     assert quotes.calls == ["002456"]
@@ -143,6 +158,7 @@ async def test_quote_by_name_and_index(tmp_path):
     index_text = await _handle_quote(runtime, Ctx(["上证综指"]))
     assert "上证综指（000001）" in index_text
     assert "最新：10.00 点" in index_text
+    assert "涨跌额：-0.05 点" in index_text
     assert "涨跌幅：-0.50%" in index_text
 
 
@@ -220,8 +236,8 @@ async def test_watchlist_quotes_order_interval_and_partial_failure(tmp_path):
 
     text = await _handle_watchlist_quotes(runtime, Ctx([]))
     assert "自选股行情（2/5）" in text
-    assert "1. 002456 欧菲光：5.78  +1.76%" in text
-    assert "2. 600519 贵州茅台：1452.00  +0.38%" in text
+    assert "1. 002456 欧菲光：5.78  +0.10  +1.76%" in text
+    assert "2. 600519 贵州茅台：1452.00  +5.56  +0.38%" in text
     assert quotes.calls == ["002456", "600519"]
     assert sleep.calls == [1.0]
 
@@ -243,9 +259,9 @@ async def test_overview_order_and_interval(tmp_path):
     runtime, _, quotes, sleep = build_runtime(tmp_path)
     text = await _handle_overview(runtime, Ctx([]))
     assert "A股概况" in text
-    assert "1. 上证综指（000001）：10.00  -0.50%" in text
-    assert "2. 深证成指（399001）：11471.09  +1.19%" in text
-    assert "3. 北证50（899050）：910.07  +1.79%" in text
+    assert "1. 上证综指（000001）：10.00  -0.05  -0.50%" in text
+    assert "2. 深证成指（399001）：11471.09  +135.40  +1.19%" in text
+    assert "3. 北证50（899050）：910.07  +15.99  +1.79%" in text
     assert quotes.calls == ["000001", "399001", "899050"]
     assert sleep.calls == [1.0, 1.0]
     assert "不接受参数" in await _handle_overview(runtime, Ctx(["002456"]))

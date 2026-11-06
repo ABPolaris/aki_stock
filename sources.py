@@ -141,23 +141,38 @@ def _parse_em_item(frame: Any, ref: StockRef) -> Quote:
     data = _item_map(frame)
     price = _as_float(data.get("最新"))
     change = _as_float(data.get("涨幅"))
+    amount = _as_float(data.get("涨跌"))
     if price is None and change is None:
         raise QuoteUnavailableError("东方财富未返回有效行情，该股票可能停牌或代码已失效。")
-    return Quote(ref=ref, price=price, change_percent=change, source="eastmoney")
+    return Quote(
+        ref=ref,
+        price=price,
+        change_percent=change,
+        source="eastmoney",
+        change_amount=amount,
+    )
 
 
 def _parse_em_index_row(row: dict[str, Any], ref: StockRef) -> Quote:
     price = _as_float(row.get("最新价"))
     change = _as_float(row.get("涨跌幅"))
+    amount = _as_float(row.get("涨跌额"))
     if price is None and change is None:
         raise QuoteUnavailableError("东方财富未返回该指数的有效行情。")
-    return Quote(ref=ref, price=price, change_percent=change, source="eastmoney")
+    return Quote(
+        ref=ref,
+        price=price,
+        change_percent=change,
+        source="eastmoney",
+        change_amount=amount,
+    )
 
 
 def _parse_xq_item(frame: Any, ref: StockRef) -> Quote:
     data = _item_map(frame)
     price = _as_float(data.get("现价"))
     change = _as_float(data.get("涨幅"))
+    amount = _as_float(data.get("涨跌"))
     if price is None and change is None:
         raise QuoteUnavailableError("雪球未返回有效行情，该股票可能停牌或代码已失效。")
     name = str(data.get("名称") or "").strip()
@@ -166,7 +181,13 @@ def _parse_xq_item(frame: Any, ref: StockRef) -> Quote:
         display_ref = replace(ref, name=name)
     else:
         display_ref = ref
-    return Quote(ref=display_ref, price=price, change_percent=change, source="xueqiu")
+    return Quote(
+        ref=display_ref,
+        price=price,
+        change_percent=change,
+        source="xueqiu",
+        change_amount=amount,
+    )
 
 
 def looks_like_token_error(exc: BaseException) -> bool:

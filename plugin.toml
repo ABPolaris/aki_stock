@@ -1,5 +1,5 @@
 name = "aki_stock"
-version = "0.1.1"
+version = "0.1.2"
 description = "A股行情查询、自选股管理与大盘概况（AKShare）"
 author = "秋星灿"
 python_dependencies = ["akshare>=1.20.34,<2", "pydantic>=2,<3"]
