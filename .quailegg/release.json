@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "version": "0.1.4-a1",
+  "created_at": "2026-11-06T15:20:37.736794509+08:00",
+  "mode": "pr",
+  "channel": "alpha",
+  "fingerprint": "sha256:e0600c2793122158bd9d58d2d8c86ec743f8559f7309ae38469fb082933567d5",
+  "repo": {
+    "host": "github.com",
+    "owner": "ABPolaris",
+    "name": "aki_stock",
+    "url": "https://github.com/ABPolaris/aki_stock"
+  },
+  "verified": {
+    "commands": [
+      "uv run pytest -q"
+    ],
+    "skipped": true,
+    "at": "2026-11-06T15:20:37.73679471+08:00"
+  },
+  "packages": [
+    {
+      "name": "python@aki-stock",
+      "path": ".",
+      "resolver": "python",
+      "current": "0.1.3",
+      "next": "0.1.4-a1",
+      "bump": "patch",
+      "tag": "v0.1.4a1",
+      "publish": false
+    }
+  ],
+  "releases": [
+    {
+      "version": "0.1.4-a1",
+      "tag": "v0.1.4a1",
+      "previous_tag": "v0.1.3",
+      "packages": [
+        "python@aki-stock"
+      ],
+      "prerelease": "alpha"
+    }
+  ],
+  "changes": [
+    {
+      "file": ".changes/quailegg.md",
+      "type": "chore",
+      "bump": "patch",
+      "packages": [
+        "python@aki-stock"
+      ],
+      "body": "接入QuailEgg",
+      "commit": "f4492a2743c6ed46b5b3a4c343f392ea3b993028",
+      "commit_url": "https://github.com/ABPolaris/aki_stock/commit/f4492a2743c6ed46b5b3a4c343f392ea3b993028"
+    }
+  ],
+  "qegg": {
+    "version": "0.12.0"
+  }
+}

@@ -1,3 +1,18 @@
+[project]
+name = "aki_stock"
+version = "0.1.4-a1"
+description = "A股行情查询、自选股管理与大盘概况（AKShare）"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "秋星灿" }]
+dependencies = ["akshare>=1.20.34,<2", "pydantic>=2,<3"]
+
+[project.urls]
+Homepage = "https://github.com/ABPolaris/aki_stock"
+Repository = "https://github.com/ABPolaris/aki_stock"
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
