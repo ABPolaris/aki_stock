@@ -29,7 +29,7 @@ from .sources import SOURCE_LABELS
 
 plugin = Plugin(
     "aki_stock",
-    version="0.1.2",
+    version="0.1.3",
     description="A股行情查询、自选股管理与大盘概况（AKShare）",
     config=Config,
     hot_reload=True,
@@ -330,7 +330,7 @@ def _format_single(result: Quote) -> str:
 
 def _format_many(title: str, outcomes: list[QuoteOutcome]) -> str:
     # 一行里三个数字，标题先说明顺序，避免把涨跌额误读成价格。
-    lines = [f"{title} · 价格 / 涨跌额 | 涨跌幅"]
+    lines = [f"{title} · 价格 | 涨跌额 | 涨跌幅"]
     for index, outcome in enumerate(outcomes, 1):
         name = _ref_name(outcome.ref)
         if outcome.quote is None:
@@ -338,8 +338,8 @@ def _format_many(title: str, outcomes: list[QuoteOutcome]) -> str:
             continue
         result = outcome.quote
         lines.append(
-            f"{index}. {name}： {_price(result.price)} "
-            f"{_amount_value(result.change_amount)} | {_pct(result.change_percent)}"
+            f"{index}. {name}\n"
+            f"{_price(result.price)} | {_amount_value(result.change_amount)} | {_pct(result.change_percent)}"
         )
     source = next((item.quote.source for item in outcomes if item.quote is not None), "")
     if source:
