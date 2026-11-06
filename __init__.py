@@ -29,7 +29,7 @@ from .sources import SOURCE_LABELS
 
 plugin = Plugin(
     "aki_stock",
-    version="0.1.1a2",
+    version="0.1.2",
     description="A股行情查询、自选股管理与大盘概况（AKShare）",
     config=Config,
     hot_reload=True,
@@ -260,7 +260,8 @@ async def _add_watchlist(runtime: AkiStockRuntime, user_id: int, rest: list[str]
     try:
         ref, count = await watchlist.add(runtime, user_id, rest[0])
         return (
-            f"已添加自选股：{ref.label} （{count}/{runtime.config.watchlist_limit}）"
+            f"已添加自选股：{ref.label}"
+            f"（{count}/{runtime.config.watchlist_limit}）"
         )
     except (UserInputError, QuoteUnavailableError) as exc:
         return str(exc)
@@ -279,7 +280,8 @@ async def _remove_watchlist(runtime: AkiStockRuntime, user_id: int, rest: list[s
     try:
         entry, count = await watchlist.remove(runtime, user_id, rest[0])
         return (
-            f"已删除自选股：{entry.as_ref().label} （{count}/{runtime.config.watchlist_limit}）"
+            f"已删除自选股：{entry.as_ref().label}"
+            f"（{count}/{runtime.config.watchlist_limit}）"
         )
     except (UserInputError, QuoteUnavailableError) as exc:
         return str(exc)
@@ -317,8 +319,8 @@ def _format_single(result: Quote) -> str:
     lines = [
         head,
         price_line,
-        f"涨跌额：{_amount(result.change_amount, unit)}\n",
-        f"涨跌幅：{_pct(result.change_percent)}\n",
+        f"涨跌额：{_amount(result.change_amount, unit)}",
+        f"涨跌幅：{_pct(result.change_percent)}",
         f"数据源：{_source_label(result)}",
     ]
     if result.as_of:
@@ -328,7 +330,7 @@ def _format_single(result: Quote) -> str:
 
 def _format_many(title: str, outcomes: list[QuoteOutcome]) -> str:
     # 一行里三个数字，标题先说明顺序，避免把涨跌额误读成价格。
-    lines = [f"{title} · 价格 | 涨跌额 | 涨跌幅"]
+    lines = [f"{title} · 价格 / 涨跌额 | 涨跌幅"]
     for index, outcome in enumerate(outcomes, 1):
         name = _ref_name(outcome.ref)
         if outcome.quote is None:
@@ -336,7 +338,8 @@ def _format_many(title: str, outcomes: list[QuoteOutcome]) -> str:
             continue
         result = outcome.quote
         lines.append(
-            f"{index}. {name}：{_price(result.price)} | {_amount_value(result.change_amount)} | {_pct(result.change_percent)}"
+            f"{index}. {name}： {_price(result.price)} "
+            f"{_amount_value(result.change_amount)} | {_pct(result.change_percent)}"
         )
     source = next((item.quote.source for item in outcomes if item.quote is not None), "")
     if source:
