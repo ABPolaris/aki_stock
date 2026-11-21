@@ -1,0 +1,39 @@
+name: PR 门禁刷新
+
+# issue_comment 在默认分支运行；fork 评审先经只读的 PR 评审事件工作流，
+# 再由基础仓库 workflow_run 接力。写令牌只用于重跑既有门禁，不执行 PR 代码。
+
+on:
+  issue_comment:
+    types: [created, edited, deleted]
+  workflow_run:
+    workflows: [PR 评审事件]
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: "pr-gates-refresh-${{ github.event.issue.number && format('PR #{0}', github.event.issue.number) || github.event.workflow_run.display_title || github.run_id }}"
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    name: 重跑 PR 门禁
+    if: github.event_name == 'workflow_run' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: 检出默认分支的可信刷新脚本
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: 复核事件并重跑当前 head 的 PR 门禁
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/refresh_pr_gates.py
