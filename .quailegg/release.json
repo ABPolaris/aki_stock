@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "version": "0.1.4-a1",
-  "created_at": "2026-11-06T15:20:37.736794509+08:00",
+  "version": "0.1.4-a2",
+  "created_at": "2026-11-23T13:28:28.229121939+08:00",
   "mode": "pr",
   "channel": "alpha",
-  "fingerprint": "sha256:e0600c2793122158bd9d58d2d8c86ec743f8559f7309ae38469fb082933567d5",
+  "fingerprint": "sha256:49039f8d000db077791ae7741311e9f2b2eccb1160dd47b70dc578eac2ed0c21",
   "repo": {
     "host": "github.com",
     "owner": "ABPolaris",
@@ -16,25 +16,25 @@
       "uv run pytest -q"
     ],
     "skipped": true,
-    "at": "2026-11-06T15:20:37.73679471+08:00"
+    "at": "2026-11-23T13:28:28.22912229+08:00"
   },
   "packages": [
     {
       "name": "python@aki-stock",
       "path": ".",
       "resolver": "python",
-      "current": "0.1.3",
-      "next": "0.1.4-a1",
+      "current": "0.1.4-a1",
+      "next": "0.1.4-a2",
       "bump": "patch",
-      "tag": "v0.1.4a1",
+      "tag": "v0.1.4a2",
       "publish": false
     }
   ],
   "releases": [
     {
-      "version": "0.1.4-a1",
-      "tag": "v0.1.4a1",
-      "previous_tag": "v0.1.3",
+      "version": "0.1.4-a2",
+      "tag": "v0.1.4a2",
+      "previous_tag": "v0.1.4a1",
       "packages": [
         "python@aki-stock"
       ],
@@ -42,6 +42,45 @@
     }
   ],
   "changes": [
+    {
+      "file": ".changes/background-query.md",
+      "type": "fix",
+      "scope": "plugin",
+      "bump": "patch",
+      "packages": [
+        "python@aki-stock"
+      ],
+      "body": "将单只与批量行情查询改为后台任务，并给整次查询设置 20 秒总超时预算，避免慢查询阻塞 NeoBot 入站消息处理。",
+      "commit": "cbedb08d63fb987c06c6820ac726243687e02f7f",
+      "commit_url": "https://github.com/ABPolaris/aki_stock/commit/cbedb08d63fb987c06c6820ac726243687e02f7f",
+      "author": "ABPolaris"
+    },
+    {
+      "file": ".changes/change.md",
+      "type": "chore",
+      "scope": "plugin",
+      "bump": "patch",
+      "packages": [
+        "python@aki-stock"
+      ],
+      "body": "修改版本跟踪的分支",
+      "commit": "487e2a5f213de214dc66bc07c9f81c26ef6f49d9",
+      "commit_url": "https://github.com/ABPolaris/aki_stock/commit/487e2a5f213de214dc66bc07c9f81c26ef6f49d9",
+      "author": "ABPolaris"
+    },
+    {
+      "file": ".changes/ci.md",
+      "type": "fix",
+      "scope": "ci",
+      "bump": "patch",
+      "packages": [
+        "python@aki-stock"
+      ],
+      "body": "补充ci门禁脚本",
+      "commit": "ac89ee5d04690d6c15a8ced4291bb53403c3b7cf",
+      "commit_url": "https://github.com/ABPolaris/aki_stock/commit/ac89ee5d04690d6c15a8ced4291bb53403c3b7cf",
+      "author": "ABPolaris"
+    },
     {
       "file": ".changes/quailegg.md",
       "type": "chore",
@@ -51,10 +90,14 @@
       ],
       "body": "接入QuailEgg",
       "commit": "f4492a2743c6ed46b5b3a4c343f392ea3b993028",
-      "commit_url": "https://github.com/ABPolaris/aki_stock/commit/f4492a2743c6ed46b5b3a4c343f392ea3b993028"
+      "commit_url": "https://github.com/ABPolaris/aki_stock/commit/f4492a2743c6ed46b5b3a4c343f392ea3b993028",
+      "author": "ABPolaris"
     }
   ],
+  "previous_changes": [
+    ".changes/quailegg.md"
+  ],
   "qegg": {
-    "version": "0.12.0"
+    "version": "0.14.1"
   }
 }
