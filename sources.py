@@ -361,10 +361,10 @@ class QuoteService:
     def set_source(self, source: str) -> None:
         self._source_name = validate_source(source)
 
-    async def fetch(self, ref: StockRef) -> Quote:
+    async def fetch(self, ref: StockRef, *, timeout: float | None = None) -> Quote:
         source = self._sources[self._source_name]
         try:
-            return await self._gate.run(source.fetch, ref)
+            return await self._gate.run(source.fetch, ref, timeout=timeout)
         except QuoteUnavailableError:
             raise
         except Exception as exc:

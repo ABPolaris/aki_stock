@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import Config
+from .quote import BACKGROUND_GRACE_SECONDS, COMMAND_BUDGET_SECONDS
 from .resolver import StockResolver
 from .sources import AkshareGate, QuoteService
 from .storage import WatchlistStore
@@ -74,6 +75,8 @@ class AkiStockRuntime:
         quotes: QuoteService | None = None,
         watchlists: WatchlistStore | None = None,
         sleep: Any | None = None,
+        command_budget: float = COMMAND_BUDGET_SECONDS,
+        background_grace: float = BACKGROUND_GRACE_SECONDS,
     ) -> None:
         self.config = config
         self.data_dir = Path(data_dir)
@@ -85,8 +88,11 @@ class AkiStockRuntime:
             self.data_dir / "watchlists.json", logger=logger
         )
         self.sleep = sleep or asyncio.sleep
+        self.command_budget = float(command_budget)
+        self.background_grace = float(background_grace)
         self._ctx: Any | None = None
         self._consumer: AkiStockConfigConsumer | None = None
+        self._tasks: set[asyncio.Task] = set()
 
     @classmethod
     def from_context(cls, ctx: Any) -> AkiStockRuntime:
@@ -124,6 +130,12 @@ class AkiStockRuntime:
         self._consumer = consumer
 
     async def close(self) -> None:
+        tasks = list(self._tasks)
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        self._tasks.clear()
         if self._consumer is None:
             return
         ctx = self._ctx
@@ -136,6 +148,31 @@ class AkiStockRuntime:
             except Exception as exc:  # pragma: no cover - 卸载阶段只记日志
                 self.log_warning(f"注销配置热重载失败: {type(exc).__name__}: {exc}")
         self._consumer = None
+
+    def create_task(self, coroutine: Any) -> asyncio.Task:
+        """登记后台查询；宿主可用时走 PluginMessaging 的托管任务。"""
+
+        ctx = self._ctx
+        creator = getattr(ctx, "create_task", None)
+        try:
+            if callable(creator):
+                task = creator(coroutine)
+            else:
+                task = asyncio.create_task(coroutine)
+        except Exception:
+            close = getattr(coroutine, "close", None)
+            if callable(close):
+                close()
+            raise
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+        return task
+
+    async def wait_background(self) -> None:
+        """等待当前后台任务结束，供测试和关闭阶段使用。"""
+
+        while self._tasks:
+            await asyncio.gather(*list(self._tasks), return_exceptions=True)
 
     def log_warning(self, message: str) -> None:
         if self.logger is None:

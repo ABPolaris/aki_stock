@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -16,6 +17,7 @@ from aki_stock import (
     _handle_watchlist,
     _handle_watchlist_quotes,
 )
+from aki_stock import quote
 from aki_stock.config import Config
 from aki_stock.models import (
     Quote,
@@ -79,9 +81,11 @@ class FakeQuotes:
         self.calls: list[str] = []
         self.fail_codes = set(fail_codes)
         self.source_name = "xueqiu"
+        self.timeouts: list[float | None] = []
 
-    async def fetch(self, ref: StockRef) -> Quote:
+    async def fetch(self, ref: StockRef, *, timeout: float | None = None) -> Quote:
         self.calls.append(ref.code)
+        self.timeouts.append(timeout)
         if ref.code in self.fail_codes:
             raise QuoteUnavailableError(
                 "雪球源访问令牌失效，请稍后再试或切换到东方财富源。"
@@ -120,6 +124,10 @@ class Ctx:
         self.args = list(args)
         self.raw_args = " ".join(self.args)
         self.user_id = user_id
+        self.sent: list[str] = []
+
+    async def reply(self, text: str) -> None:
+        self.sent.append(text)
 
 
 def build_runtime(tmp_path, *, limit: int = 2, fail_codes=()):
@@ -323,3 +331,92 @@ def test_plugin_surface_has_config_and_guide():
     source = document["config"]["properties"]["source"]
     assert source["enum"] == ["eastmoney", "xueqiu"]
     assert document["guides"][0]["id"] == "first-use"
+
+
+class SlowQuotes(FakeQuotes):
+    def __init__(self, *, fail_codes=()) -> None:
+        super().__init__(fail_codes=fail_codes)
+        self.release = asyncio.Event()
+
+    async def fetch(self, ref: StockRef, *, timeout: float | None = None) -> Quote:
+        await self.release.wait()
+        return await super().fetch(ref, timeout=timeout)
+
+
+class TimeoutQuotes(FakeQuotes):
+    async def fetch(self, ref: StockRef, *, timeout: float | None = None) -> Quote:
+        self.calls.append(ref.code)
+        await asyncio.sleep((timeout or 0.1) + 0.01)
+        raise QuoteUnavailableError("行情源响应超时，请稍后再试。")
+
+
+@pytest.mark.asyncio
+async def test_slow_single_query_returns_ack_then_sends_result(tmp_path):
+    resolver = FakeResolver()
+    slow = SlowQuotes()
+    runtime = AkiStockRuntime(
+        Config(source="xueqiu", watchlist_limit=5),
+        tmp_path,
+        resolver=resolver,
+        quotes=slow,
+        watchlists=WatchlistStore(tmp_path / "watchlists.json"),
+        sleep=FakeSleep(),
+    )
+    runtime.background_grace = 0.01
+    ctx = Ctx(["002456"])
+
+    ack = await _handle_quote(runtime, ctx)
+    assert "正在查询" in ack
+    assert ctx.sent == []
+
+    slow.release.set()
+    await runtime.wait_background()
+    assert ctx.sent
+    assert "002456 欧菲光" in ctx.sent[-1]
+
+
+@pytest.mark.asyncio
+async def test_single_query_hits_command_budget(tmp_path):
+    resolver = FakeResolver()
+    slow = SlowQuotes()
+    runtime = AkiStockRuntime(
+        Config(source="xueqiu", watchlist_limit=5),
+        tmp_path,
+        resolver=resolver,
+        quotes=slow,
+        watchlists=WatchlistStore(tmp_path / "watchlists.json"),
+        sleep=FakeSleep(),
+        command_budget=0.05,
+    )
+    runtime.background_grace = 0.01
+    ctx = Ctx(["002456"])
+
+    ack = await _handle_quote(runtime, ctx)
+    assert "正在查询" in ack
+    await runtime.wait_background()
+    assert ctx.sent
+    assert "0.05 秒预算" in ctx.sent[-1]
+
+
+@pytest.mark.asyncio
+async def test_batch_query_budget_marks_remaining_refs(tmp_path):
+    resolver = FakeResolver()
+    quotes = TimeoutQuotes()
+    runtime = AkiStockRuntime(
+        Config(source="xueqiu", watchlist_limit=5),
+        tmp_path,
+        resolver=resolver,
+        quotes=quotes,
+        watchlists=WatchlistStore(tmp_path / "watchlists.json"),
+        sleep=FakeSleep(),
+        command_budget=0.05,
+    )
+
+    outcomes = await quote.fetch_many(
+        runtime,
+        [TCL, MAOTAI, BJ_INDEX],
+        budget=runtime.command_budget,
+    )
+    assert len(outcomes) == 3
+    assert all(not outcome.ok for outcome in outcomes)
+    assert "预算" in outcomes[-1].error

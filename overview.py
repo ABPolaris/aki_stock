@@ -12,5 +12,9 @@ from . import quote
 from .resolver import index_definitions
 
 
-async def query_all(runtime: Any):
-    return await quote.fetch_many(runtime, index_definitions())
+async def query_all(runtime: Any, *, budget: float | None = None):
+    return await quote.fetch_many(
+        runtime,
+        index_definitions(),
+        budget=runtime.command_budget if budget is None else budget,
+    )

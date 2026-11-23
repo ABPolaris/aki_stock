@@ -46,7 +46,12 @@ async def query_all(
     user_id: int,
     *,
     items: list[WatchlistEntry] | None = None,
+    budget: float | None = None,
 ):
     entries = items if items is not None else await list_items(runtime, user_id)
     refs = [entry.as_ref() for entry in entries]
-    return await quote.fetch_many(runtime, refs)
+    return await quote.fetch_many(
+        runtime,
+        refs,
+        budget=runtime.command_budget if budget is None else budget,
+    )

@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from neobot_modloader import Plugin
@@ -29,7 +30,7 @@ from .sources import SOURCE_LABELS
 
 plugin = Plugin(
     "aki_stock",
-    version="v0.1.4-a1",
+    version="v0.1.4-a2",
     description="A股行情查询、自选股管理与大盘概况（AKShare）",
     config=Config,
     hot_reload=True,
@@ -171,14 +172,81 @@ async def _handle_quote(runtime: AkiStockRuntime, command_ctx: Any) -> str:
         return _MISSING_QUOTE
     if len(args) != 1:
         return _TOO_MANY
+    ack = f"正在查询，最多等待 {runtime.command_budget:g} 秒…"
+    return await _dispatch_background(
+        runtime,
+        command_ctx,
+        _run_quote(runtime, args[0]),
+        ack,
+    )
+
+
+async def _run_quote(runtime: AkiStockRuntime, raw: str) -> str:
     try:
-        result = await quote.query_one(runtime, args[0])
+        result = await quote.query_one(runtime, raw, budget=runtime.command_budget)
         return _format_single(result)
     except (UserInputError, QuoteUnavailableError) as exc:
         return str(exc)
     except Exception as exc:  # pragma: no cover - 兜底，避免异常泄漏到聊天
         runtime.log_error(f"行情查询失败: {type(exc).__name__}: {exc}")
         return "查询失败，请稍后再试。"
+
+
+async def _dispatch_background(
+    runtime: AkiStockRuntime,
+    command_ctx: Any,
+    coroutine: Any,
+    ack: str,
+) -> str:
+    """先等一小段时间；没查完就交给后台，命令立即返回。"""
+
+    try:
+        task = runtime.create_task(coroutine)
+    except Exception as exc:  # pragma: no cover - 插件停止时才会走到
+        runtime.log_error(f"启动后台查询失败: {type(exc).__name__}: {exc}")
+        return "插件正在停止，无法启动查询。"
+    done, _ = await asyncio.wait({task}, timeout=max(0.0, runtime.background_grace))
+    if done:
+        return _task_text(runtime, task)
+
+    async def _send_later() -> None:
+        if task.cancelled():
+            return
+        try:
+            text = await task
+        except asyncio.CancelledError:
+            return
+        except Exception as exc:  # pragma: no cover - 兜底
+            runtime.log_error(f"后台查询失败: {type(exc).__name__}: {exc}")
+            text = "查询失败，请稍后再试。"
+        await _reply_text(command_ctx, runtime, text)
+
+    try:
+        runtime.create_task(_send_later())
+    except Exception as exc:  # pragma: no cover - 插件停止时才会走到
+        runtime.log_error(f"登记后台回复失败: {type(exc).__name__}: {exc}")
+    return ack
+
+
+def _task_text(runtime: AkiStockRuntime, task: asyncio.Task) -> str:
+    if task.cancelled():
+        return "查询已取消。"
+    exc = task.exception()
+    if exc is not None:  # pragma: no cover - 任务内部已兜底
+        runtime.log_error(f"后台查询失败: {type(exc).__name__}: {exc}")
+        return "查询失败，请稍后再试。"
+    return str(task.result())
+
+
+async def _reply_text(command_ctx: Any, runtime: AkiStockRuntime, text: str) -> None:
+    reply = getattr(command_ctx, "reply", None)
+    if not callable(reply):
+        runtime.log_error("命令上下文缺少 reply，后台查询结果未发送")
+        return
+    try:
+        await reply(text)
+    except Exception as exc:  # pragma: no cover - 发送失败只记日志
+        runtime.log_error(f"后台查询回复发送失败: {type(exc).__name__}: {exc}")
 
 
 async def _handle_watchlist(runtime: AkiStockRuntime, command_ctx: Any) -> str:
@@ -198,7 +266,7 @@ async def _handle_watchlist(runtime: AkiStockRuntime, command_ctx: Any) -> str:
     if action in {"信息", "行情", "quotes", "query"}:
         if rest:
             return "查询自选股行情不需要股票参数；请直接发送 /自选股信息。"
-        return await _query_watchlist(runtime, user_id)
+        return await _query_watchlist(runtime, user_id, command_ctx)
     if action in {"添加", "add", "新增", "a"}:
         return await _add_watchlist(runtime, user_id, rest)
     if action in {"删除", "remove", "del", "rm", "d"}:
@@ -214,14 +282,24 @@ async def _handle_watchlist_quotes(runtime: AkiStockRuntime, command_ctx: Any) -
     user_id = _user_id(command_ctx)
     if user_id <= 0:
         return "无法识别当前用户，请在群聊或私聊中重新发送。"
-    return await _query_watchlist(runtime, user_id)
+    return await _query_watchlist(runtime, user_id, command_ctx)
 
 
 async def _handle_overview(runtime: AkiStockRuntime, command_ctx: Any) -> str:
     if _args(command_ctx):
         return "该指令不接受参数，请直接发送 /A股概况。"
+    ack = f"正在查询 A 股概况，最多等待 {runtime.command_budget:g} 秒…"
+    return await _dispatch_background(
+        runtime,
+        command_ctx,
+        _run_overview(runtime),
+        ack,
+    )
+
+
+async def _run_overview(runtime: AkiStockRuntime) -> str:
     try:
-        outcomes = await overview.query_all(runtime)
+        outcomes = await overview.query_all(runtime, budget=runtime.command_budget)
         return _format_many("A股概况", outcomes)
     except QuoteUnavailableError as exc:
         return str(exc)
@@ -292,13 +370,46 @@ async def _remove_watchlist(runtime: AkiStockRuntime, user_id: int, rest: list[s
         return "删除失败，请稍后再试。"
 
 
-async def _query_watchlist(runtime: AkiStockRuntime, user_id: int) -> str:
+async def _query_watchlist(
+    runtime: AkiStockRuntime,
+    user_id: int,
+    command_ctx: Any,
+) -> str:
     try:
         items = await watchlist.list_items(runtime, user_id)
         if not items:
             return _EMPTY_WATCHLIST
-        outcomes = await watchlist.query_all(runtime, user_id, items=items)
         title = f"自选股行情（{len(items)}/{runtime.config.watchlist_limit}）"
+        ack = (
+            f"正在查询 {len(items)} 只自选股，"
+            f"最多等待 {runtime.command_budget:g} 秒…"
+        )
+        return await _dispatch_background(
+            runtime,
+            command_ctx,
+            _run_watchlist(runtime, user_id, items, title),
+            ack,
+        )
+    except QuoteUnavailableError as exc:
+        return str(exc)
+    except Exception as exc:  # pragma: no cover - 兜底
+        runtime.log_error(f"自选股行情查询失败: {type(exc).__name__}: {exc}")
+        return "查询失败，请稍后再试。"
+
+
+async def _run_watchlist(
+    runtime: AkiStockRuntime,
+    user_id: int,
+    items: list[Any],
+    title: str,
+) -> str:
+    try:
+        outcomes = await watchlist.query_all(
+            runtime,
+            user_id,
+            items=items,
+            budget=runtime.command_budget,
+        )
         return _format_many(title, outcomes)
     except QuoteUnavailableError as exc:
         return str(exc)
@@ -388,8 +499,8 @@ def _short_error(error: str) -> str:
         return "数据源限流"
     if "令牌" in text or "鉴权" in text:
         return "数据源鉴权失败"
-    if "超时" in text:
-        return "请求超时"
+    if "超时" in text or "预算" in text:
+        return "查询超时"
     if "名称列表" in text:
         return "名称解析失败"
     return "暂时不可用"
